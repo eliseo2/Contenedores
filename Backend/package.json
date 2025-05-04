@@ -4,6 +4,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,6 +14,13 @@
   "description": "",
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "dotenv": "^16.3.1",
+    "express": "^5.1.0",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "mysql2": "^3.6.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }
