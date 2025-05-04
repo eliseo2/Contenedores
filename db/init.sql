@@ -27,6 +27,8 @@ INSERT INTO users (username, email, password) VALUES
 ('usuario2', 'usuario2@ejemplo.com', 'password123');
 
 INSERT INTO products (name, description, price, stock) VALUES
-('Producto 1', 'Descripción del producto 1', 19.99, 100),
-('Producto 2', 'Descripción del producto 2', 29.99, 50),
-('Producto 3', 'Descripción del producto 3', 39.99, 25);
+('Producto 1', 'Descripcion del producto 1', 19.99, 100),
+('Producto 2', 'Descripcion del producto 2', 29.99, 50),
+('Producto 3', 'Descripcion del producto 3', 39.99, 25);
+
+// ALTER TABLE products CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

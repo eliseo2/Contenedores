@@ -34,7 +34,10 @@ app.use((req, res, next) => {
 
 app.use(express.json()); // Para parsear JSON en el body
 
-
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
 
 // Configuración de la base de datos
 const dbConfig = {
@@ -45,7 +48,12 @@ const dbConfig = {
 };
 
 // Pool de conexiones a la base de datos
-const pool = mysql.createPool(dbConfig);
+const pool = mysql.createPool({host: process.env.DB_HOST || "db",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "password",
+  database: process.env.DB_NAME || "appdb",
+  charset: 'utf8mb4'  // Solo añade esta línea
+});
 
 // Middleware para verificar la conexión a la BD
 app.use(async (req, res, next) => {
