@@ -10,6 +10,9 @@ import rateLimit from "express-rate-limit";
 import winston from "winston";
 import path from "path";
 import { fileURLToPath } from 'url';
+import https from 'https';
+import http from 'http';
+import fs from 'fs';
 
 // Configurar __dirname en ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -56,6 +59,7 @@ app.use(cors({
     'https://localhost', 
     'http://localhost',
     'http://localhost:3000',
+    'https://localhost:3000',
     process.env.FRONTEND_URL
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -65,7 +69,7 @@ app.use(cors({
 
 // Configuración del logger
 const logger = winston.createLogger({
-  level: 'info',
+  level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.json()
@@ -114,8 +118,8 @@ app.use((req, res, next) => {
 
 // Configurar rate limiting global
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // Limitar cada IP a 100 solicitudes por ventana
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos por defecto
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // Limitar cada IP a 100 solicitudes por ventana
   standardHeaders: true, // Devuelve cabeceras estándar de RateLimit
   legacyHeaders: false, // Desactivar las cabeceras `X-RateLimit-*`
   message: { error: "Demasiadas solicitudes, por favor intente más tarde" }
@@ -126,8 +130,8 @@ app.use(globalLimiter);
 
 // Rate limiting más estricto para endpoints sensibles
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // Limitar cada IP a 5 intentos de login por ventana
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
+  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX) || 5, // Limitar cada IP a 5 intentos de login por ventana
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Demasiados intentos de login. Por favor intenta más tarde." }
@@ -136,8 +140,8 @@ const loginLimiter = rateLimit({
 // Configuración mejorada del pool de conexiones MySQL
 const pool = mysql.createPool({
   host: process.env.DB_HOST || "db",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "password",
+  user: process.env.DB_USER || "appuser",
+  password: process.env.DB_PASSWORD || "apppassword",
   database: process.env.DB_NAME || "appdb",
   charset: 'utf8mb4',
   waitForConnections: true,
@@ -429,9 +433,31 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Error interno del servidor" });
 });
 
-// Iniciar el servidor
+// Configuración de servidores HTTP y HTTPS
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  logger.info(`Servidor backend corriendo en puerto ${PORT}`);
-  console.log(`Servidor backend corriendo en puerto ${PORT}`);
+const HTTPS_PORT = process.env.HTTPS_PORT || 5443;
+
+// Iniciar servidor HTTP
+const httpServer = http.createServer(app);
+httpServer.listen(PORT, () => {
+  logger.info(`Servidor HTTP corriendo en puerto ${PORT}`);
+  console.log(`Servidor HTTP corriendo en puerto ${PORT}`);
 });
+
+// Verificar si existen los certificados SSL
+const sslOptions = {
+  key: fs.existsSync('/app/ssl/server.key') ? fs.readFileSync('/app/ssl/server.key') : null,
+  cert: fs.existsSync('/app/ssl/server.crt') ? fs.readFileSync('/app/ssl/server.crt') : null
+};
+
+// Solo iniciar HTTPS si existen los certificados
+if (sslOptions.key && sslOptions.cert) {
+  const httpsServer = https.createServer(sslOptions, app);
+  httpsServer.listen(HTTPS_PORT, () => {
+    logger.info(`Servidor HTTPS corriendo en puerto ${HTTPS_PORT}`);
+    console.log(`Servidor HTTPS corriendo en puerto ${HTTPS_PORT}`);
+  });
+} else {
+  logger.warn('Certificados SSL no encontrados. El servidor HTTPS no se ha iniciado.');
+  console.warn('Certificados SSL no encontrados. El servidor HTTPS no se ha iniciado.');
+}
