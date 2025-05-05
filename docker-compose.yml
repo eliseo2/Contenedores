@@ -1,5 +1,73 @@
+version: '3'
 
 services:
+  # Sistema de logs centralizado
+  loki:
+    container_name: loki
+    image: grafana/loki:2.9.2
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring-network
+      - frontend-network
+      - backend-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:2.9.2
+    volumes:
+      - ./loki/promtail-config.yaml:/etc/promtail/config.yaml
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Ajuste para Windows - verifica la ruta correcta en tu sistema
+      - /c/ProgramData/Docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - monitoring-network
+      - frontend-network
+      - backend-network
+    depends_on:
+      - loki
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./loki/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/loki-datasource.yaml:ro
+    networks:
+      - monitoring-network
+      - frontend-network
+    depends_on:
+      - loki
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+
   # Balanceador de carga
   loadbalancer:
     build: ./loadbalancer
@@ -13,10 +81,16 @@ services:
     networks:
       - frontend-network
     restart: unless-stopped
+    # Añadimos el driver de logs para Loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Frontend - React
   frontend:
-    build: 
+    build:
       context: ./frontend
       args:
         - REACT_APP_API_URL=/api
@@ -28,6 +102,12 @@ services:
     networks:
       - frontend-network
     restart: unless-stopped
+    # Añadimos el driver de logs para Loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Backend 1
   backend1:
@@ -57,6 +137,12 @@ services:
       - ALL
     cap_add:
       - NET_BIND_SERVICE
+    # Añadimos el driver de logs para Loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Backend 2 (para balanceo de carga)
   backend2:
@@ -86,6 +172,12 @@ services:
       - ALL
     cap_add:
       - NET_BIND_SERVICE
+    # Añadimos el driver de logs para Loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Base de datos MySQL
   db:
@@ -111,6 +203,12 @@ services:
       interval: 5s
       timeout: 10s
       retries: 10
+    # Añadimos el driver de logs para Loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Panel de administración para la base de datos
   adminer:
@@ -130,6 +228,12 @@ services:
         limits:
           cpus: '0.25'
           memory: 128M
+    # Añadimos el driver de logs para Loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # Panel de administración para Docker
   portainer:
@@ -143,11 +247,21 @@ services:
     # Configuración de seguridad
     security_opt:
       - no-new-privileges:true
+    # Añadimos el driver de logs para Loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - frontend-network
 
 # Volúmenes para persistencia de datos
 volumes:
   mysql_data:
   portainer_data:
+  loki_data:
+  grafana_data:
 
 # Redes
 networks:
@@ -156,3 +270,5 @@ networks:
   backend-network:
     driver: bridge
     internal: true  # Red interna, no accesible desde el exterior
+  monitoring-network:
+    driver: bridge
