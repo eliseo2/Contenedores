@@ -1,29 +1,39 @@
-# Usar una imagen base de Node.js
+# Modificar tu Dockerfile para incluir las dependencias directamente
 FROM node:20-alpine
 
-# Crear un usuario no privilegiado para cumplir con el principio de menor privilegio
+ENV NODE_ENV=production
+ENV NPM_CONFIG_LOGLEVEL=error
+
+RUN apk --no-cache add wget curl
+
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Directorio de trabajo
 WORKDIR /app
 
-# Copiar primero package.json y package-lock.json para aprovechar caché de Docker
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm install
+# Aquí instalamos todas las dependencias, incluyendo las nuevas
+RUN npm ci \
+    && npm cache clean --force
 
-# Copiar el resto de archivos de la aplicación
-COPY . .
+# Auditoria de seguridad de paquetes
+RUN npm audit
 
-# Cambiar propietario de los archivos al usuario no privilegiado
-RUN chown -R appuser:appgroup /app
+# Crear directorio de logs y asignar permisos
+RUN mkdir -p logs && chown -R appuser:appgroup logs
 
-# Cambiar al usuario no privilegiado
+COPY --chown=appuser:appgroup . .
+
+ENV PORT=5000
+
+RUN find /app -type f -name "*.js" -exec grep -l "eval(" {} \; | xargs -r echo "Advertencia: uso potencialmente inseguro de eval en:"
+RUN find /app -type f -name "*.js" -exec grep -l "child_process" {} \; | xargs -r echo "Advertencia: uso de child_process en:"
+
 USER appuser
 
-# Exponer puerto
-EXPOSE 5000
+EXPOSE $PORT
 
-# Comando para iniciar la aplicación
-CMD ["npm", "start"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:$PORT/ || exit 1
+
+CMD ["node", "index.js"]
