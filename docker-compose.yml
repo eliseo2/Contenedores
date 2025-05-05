@@ -78,6 +78,8 @@ services:
       - frontend
       - backend1
       - backend2
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro
     networks:
       - frontend-network
     restart: unless-stopped
@@ -96,9 +98,6 @@ services:
         - REACT_APP_API_URL=/api
     environment:
       - REACT_APP_API_URL=/api
-    depends_on:
-      - backend1
-      - backend2
     networks:
       - frontend-network
     restart: unless-stopped
@@ -118,7 +117,7 @@ services:
       - NODE_ENV=production
       - PORT=5000
       - DB_HOST=db
-      - FRONTEND_URL=https://localhost
+      - FRONTEND_URL=http://frontend
     depends_on:
       db:
         condition: service_healthy
@@ -126,13 +125,11 @@ services:
       - frontend-network
       - backend-network
     restart: unless-stopped
-    # Limitar recursos para evitar ataques de DoS
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 256M
-    # Limitar capacidades del contenedor (seguridad)
+          cpus: '1.0'
+          memory: 512M
     cap_drop:
       - ALL
     cap_add:
@@ -144,7 +141,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Backend 2 (para balanceo de carga)
+  # Backend 2
   backend2:
     build: ./backend
     env_file:
@@ -153,7 +150,7 @@ services:
       - NODE_ENV=production
       - PORT=5000
       - DB_HOST=db
-      - FRONTEND_URL=https://localhost
+      - FRONTEND_URL=http://frontend
     depends_on:
       db:
         condition: service_healthy
@@ -161,13 +158,11 @@ services:
       - frontend-network
       - backend-network
     restart: unless-stopped
-    # Limitar recursos para evitar ataques de DoS
     deploy:
       resources:
         limits:
-          cpus: '0.50'
-          memory: 256M
-    # Limitar capacidades del contenedor (seguridad)
+          cpus: '1.0'
+          memory: 512M
     cap_drop:
       - ALL
     cap_add:
@@ -179,7 +174,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Base de datos MySQL
+  # Database
   db:
     image: mysql:8.0
     command: --default-authentication-plugin=mysql_native_password
@@ -194,8 +189,6 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - backend-network
-    # Limitar acceso a la red frontend
-    # Solo accesible desde backend
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -222,7 +215,6 @@ services:
       - backend-network
     environment:
       - ADMINER_DEFAULT_SERVER=db
-    # Limitar recursos
     deploy:
       resources:
         limits:
@@ -244,7 +236,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
-    # Configuración de seguridad
     security_opt:
       - no-new-privileges:true
     # Añadimos el driver de logs para Loki
@@ -263,7 +254,6 @@ volumes:
   loki_data:
   grafana_data:
 
-# Redes
 networks:
   frontend-network:
     driver: bridge
