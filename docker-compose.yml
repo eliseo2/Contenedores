@@ -28,8 +28,8 @@ services:
     volumes:
       - ./loki/promtail-config.yaml:/etc/promtail/config.yaml
       - /var/run/docker.sock:/var/run/docker.sock
-      # Ajuste para Windows - verifica la ruta correcta en tu sistema
-      - /c/ProgramData/Docker/containers:/var/lib/docker/containers:ro
+      # Updated path for Windows Docker Desktop
+      - /mnt/c/ProgramData/Docker/containers:/var/lib/docker/containers:ro
     command: -config.file=/etc/promtail/config.yaml
     networks:
       - monitoring-network
