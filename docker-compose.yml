@@ -9,6 +9,7 @@ services:
       - "3100:3100"
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - ./loki/rules:/loki/rules
       - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
     networks:
@@ -44,6 +45,21 @@ services:
           cpus: '0.25'
           memory: 128M
 
+  alertmanager:
+    container_name: alertmanager
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./loki/alertmanager.yml:/etc/alertmanager/config.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+
   grafana:
     container_name: grafana
     image: grafana/grafana:latest
@@ -53,14 +69,18 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_UNIFIED_ALERTING_ENABLED=true
+      - GF_ALERTING_ENABLED=false
     volumes:
       - grafana_data:/var/lib/grafana
       - ./loki/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/loki-datasource.yaml:ro
+      - ./loki/grafana-dashboards:/etc/grafana/provisioning/dashboards
     networks:
       - monitoring-network
       - frontend-network
     depends_on:
       - loki
+      - alertmanager
     restart: unless-stopped
     deploy:
       resources:
@@ -89,6 +109,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        tag: "{{.Name}}"
 
   # Frontend - React
   frontend:
@@ -107,6 +128,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        tag: "{{.Name}}"
 
   # Backend 1
   backend1:
@@ -140,7 +162,11 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        tag: "{{.Name}}"
 
+  # El resto de los servicios mantienen la misma configuración pero con tag añadido a logging
+  # [...]
+  
   # Backend 2
   backend2:
     build: ./backend
@@ -173,6 +199,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        tag: "{{.Name}}"
 
   # Database
   db:
@@ -202,6 +229,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        tag: "{{.Name}}"
 
   # Panel de administración para la base de datos
   adminer:
@@ -226,6 +254,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        tag: "{{.Name}}"
 
   # Panel de administración para Docker
   portainer:
@@ -244,6 +273,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        tag: "{{.Name}}"
     networks:
       - frontend-network
 
@@ -253,6 +283,7 @@ volumes:
   portainer_data:
   loki_data:
   grafana_data:
+  alertmanager_data:
 
 networks:
   frontend-network:

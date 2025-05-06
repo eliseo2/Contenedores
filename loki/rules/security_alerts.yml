@@ -1,0 +1,70 @@
+groups:
+  - name: security_alerts
+    rules:
+      - alert: TooManyFailedLogins
+        expr: |
+          sum by (container) (
+            count_over_time({container=~"backend.*", log=~"(?i).*login failed.*|.*authentication failed.*"}[5m])
+          ) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Múltiples intentos de login fallidos detectados"
+          description: "Se han detectado más de 5 intentos de login fallidos en los últimos 5 minutos en el contenedor {{ $labels.container }}"
+
+      - alert: UnauthorizedAccessAttempt
+        expr: |
+          sum by (container, ip) (
+            count_over_time({container=~".*", status=~"401|403"}[5m])
+          ) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Intentos de acceso no autorizado detectados"
+          description: "La IP {{ $labels.ip }} ha recibido múltiples respuestas 401/403 en los últimos 5 minutos"
+          
+      - alert: PossibleSQLInjection
+        expr: |
+          count_over_time({container=~"backend.*", log=~"(?i).*sql syntax.*|.*sql injection.*|.*sqlinjection.*|.*'--.*|.*\"--.*|.*or 1=1.*"}[15m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Posible ataque de inyección SQL detectado"
+          description: "Se ha detectado un posible intento de inyección SQL en {{ $labels.container }}"
+          
+      - alert: BruteForceAttack
+        expr: |
+          sum by (ip) (
+            count_over_time({container=~"loadbalancer", status="404"}[5m])
+          ) > 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Posible ataque de fuerza bruta"
+          description: "La IP {{ $labels.ip }} ha generado más de 20 errores 404 en 5 minutos, posible escaneo de directorios"
+          
+      - alert: UnusualTrafficVolume
+        expr: |
+          sum by (container) (
+            rate({container=~"backend.*|frontend|loadbalancer"}[5m])
+          ) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Volumen inusual de tráfico detectado"
+          description: "El contenedor {{ $labels.container }} está experimentando un volumen de tráfico inusualmente alto"
+          
+      - alert: DatabaseError
+        expr: |
+          count_over_time({container="db", log=~"(?i).*error.*"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Múltiples errores en la base de datos"
+          description: "Se han detectado múltiples errores en la base de datos en los últimos 5 minutos"
