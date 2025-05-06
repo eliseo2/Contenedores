@@ -1,137 +1,128 @@
-Full-Stack Application with Monitoring
-This repository contains a production-ready containerized application with frontend, backend services, database, load balancer, and a complete monitoring stack.
-Architecture
-The project consists of the following components:
+Aplicación Full-Stack con Monitoreo
+Este repositorio contiene una aplicación contenedorizada lista para producción con frontend, servicios backend, base de datos, balanceador de carga y un conjunto completo de monitoreo. Arquitectura
+El proyecto consta de los siguientes componentes:
 
-Frontend: React application
-Backend: Dual Node.js services for high availability
-Database: MySQL 8.0
-Load Balancer: Nginx for routing and SSL termination
-Monitoring Stack:
+Frontend: Aplicación React
+Backend: Servicios duales Node.js para alta disponibilidad
+Base de datos: MySQL 8.0
+Balanceador de carga: Nginx para enrutamiento y terminación SSL
+Stack de monitorización:
 
-Grafana for dashboards and visualization
-Loki for log aggregation
-Promtail for log collection
+Grafana para paneles de control y visualización
+Loki para la agregación de registros
+Promtail para la recopilación de registros
 
+Herramientas de administración:
 
-Admin Tools:
+Adminer para la gestión de bases de datos
+Portainer para la gestión de contenedores Docker
 
-Adminer for database management
-Portainer for Docker container management
+Arquitectura de red
+La aplicación utiliza tres redes Docker aisladas:
 
+frontend-network: Para servicios públicos
+backend-network: Red interna para servicios backend y base de datos (no accesible desde el exterior)
+monitoring-network: Para servicios de monitorización
 
+Requisitos previos
 
-Network Architecture
-The application uses three isolated Docker networks:
+Docker y Docker Compose
+Certificados SSL (para la implementación en producción)
 
-frontend-network: For public-facing services
-backend-network: Internal network for backend services and database (not accessible from outside)
-monitoring-network: For monitoring services
+Estructura de directorios
 
-Prerequisites
-
-Docker and Docker Compose
-SSL certificates (for production deployment)
-
-Directory Structure
-.
 ├── docker-compose.yml
 ├── frontend/
-│   └── Dockerfile
+│ └── Dockerfile
 ├── backend/
-│   ├── Dockerfile
-│   └── .env
+│ ├── Dockerfile
+│ └── .env
 ├── loadbalancer/
-│   └── Dockerfile
+│ └── Dockerfile
 ├── db/
-│   └── init.sql
+│ └── init.sql
 ├── ssl/
-│   ├── cert.pem
-│   └── key.pem
+│ ├── cert.pem
+│ └── key.pem
 └── loki/
-    ├── loki-config.yaml
-    ├── promtail-config.yaml
-    └── grafana-datasources.yaml
-Configuration Files
-Before deployment, ensure you have:
+├── loki-config.yaml ├── promtail-config.yaml
+└── grafana-datasources.yaml
+Archivos de configuración
+Antes de la implementación, asegúrese de tener:
 
-Frontend configuration in ./frontend/
-Backend environment variables in ./backend/.env
-Database initialization script in ./db/init.sql
-SSL certificates in ./ssl/
-Loki, Promtail, and Grafana configurations in ./loki/
+Configuración del frontend en ./frontend/
+Variables de entorno del backend en ./backend/.env
+Script de inicialización de la base de datos en ./db/init.sql
+Certificados SSL en ./ssl/
+Configuraciones de Loki, Promtail y Grafana en ./loki/
 
-Installation & Deployment
-1. Clone the repository
-bashgit clone <repository-url>
-cd <repository-directory>
-2. Configure your environment
-Modify the configuration files according to your environment needs:
+Instalación e implementación
+1. Clonar el repositorio
+bashgit clone <url-del-repositorio>
+cd <directorio-del-repositorio>
+2. Configurar su entorno
+Modifique los archivos de configuración según las necesidades de su entorno:
 
-Update backend environment variables in ./backend/.env
-Configure database initialization in ./db/init.sql
-Add your SSL certificates to ./ssl/
+Actualizar las variables de entorno del backend en ./backend/.env
+Configurar la inicialización de la base de datos en ./db/init.sql
+Agregar sus certificados SSL a ./ssl/
 
-3. Start the application
+3. Iniciar Aplicación
 bashdocker-compose up -d
-This command will start all services in detached mode.
-4. Monitor the deployment
+Este comando iniciará todos los servicios en modo independiente. 4. Supervisar la implementación
 bashdocker-compose ps
-Access Points
-After deployment, you can access:
+Puntos de acceso
+Tras la implementación, puede acceder a:
 
-Main Application: https://localhost (Port 80/443)
-Grafana Dashboard: http://localhost:3000
+Aplicación principal: https://localhost (Puerto 80/443)
+Panel de control de Grafana: http://localhost:3000
 
-Default credentials: admin/admin
+Credenciales predeterminadas: admin/admin
 
+Administrador (Administrador de la base de datos): http://localhost:8080
 
-Adminer (Database Admin): http://localhost:8080
+Servidor: db
+Nombre de usuario: appuser
+Contraseña: apppassword
 
-Server: db
-Username: appuser
-Password: apppassword
+Portainer (Administrador de Docker): http://localhost:9000
+API de Loki: http://localhost:3100
 
+Límites de recursos
+Los servicios se han configurado con los siguientes límites de recursos:
 
-Portainer (Docker Admin): http://localhost:9000
-Loki API: http://localhost:3100
+Servicios de backend: 1 CPU, 512 MB de RAM
+Servicios de monitorización: 0,25-0,5 CPU, 128-256 MB de RAM
 
-Resource Limits
-The services have been configured with the following resource limits:
-
-Backend services: 1 CPU, 512MB RAM
-Monitoring services: 0.25-0.5 CPU, 128-256MB RAM
-
-Logs
-All application logs are collected by Promtail and stored in Loki, accessible through Grafana dashboards. Logs are also available through Docker's standard mechanisms:
+Registros
+Promtail recopila todos los registros de la aplicación y los almacena en Loki, accesibles a través de los paneles de control de Grafana. Los registros también están disponibles a través de los mecanismos estándar de Docker:
 bashdocker-compose logs -f [service_name]
-Security Considerations
+Consideraciones de seguridad
 
-The backend network is internal and not accessible from outside
-Containers have restricted capabilities using cap_drop and cap_add
-The database uses strong authentication
-No-new-privileges security option is enabled for critical services
+La red backend es interna y no es accesible desde el exterior.
+Los contenedores tienen capacidades restringidas mediante cap_drop y cap_add.
+La base de datos utiliza autenticación robusta.
+La opción de seguridad "sin nuevos privilegios" está habilitada para servicios críticos.
 
-Backup & Data Persistence
-The following data is persisted through Docker volumes:
+Copia de seguridad y persistencia de datos
+Los siguientes datos se conservan a través de volúmenes de Docker:
 
-MySQL database: mysql_data
-Portainer configuration: portainer_data
-Loki logs: loki_data
-Grafana dashboards and settings: grafana_data
+Base de datos MySQL: mysql_data
+Configuración de Portainer: portainer_data
+Registros de Loki: loki_data
+Paneles y configuración de Grafana: grafana_data
 
-To backup these volumes, use Docker's volume backup methods.
-Maintenance
-Scaling
-To scale backend services:
+Para realizar una copia de seguridad de estos volúmenes, utilice los métodos de copia de seguridad de volúmenes de Docker. Mantenimiento
+Escalado
+Para escalar los servicios backend:
 bashdocker-compose up -d --scale backend=3
-Updates
-To update services:
+Actualizaciones
+Para actualizar los servicios:
 bashdocker-compose pull
 docker-compose up -d
-Troubleshooting
-Common issues:
+Solución de problemas
+Problemas comunes:
 
-Database connection issues: Ensure database is healthy with docker-compose ps db
-Load balancer issues: Check Nginx logs with docker-compose logs loadbalancer
-Monitoring issues: Verify Loki and Grafana are running properly
+Problemas de conexión a la base de datos: Asegúrese de que la base de datos esté en buen estado con docker-compose ps db
+Problemas con el balanceador de carga: Compruebe los registros de Nginx con docker-compose logs loadbalancer
+Problemas de monitorización: Verifique que Loki y Grafana funcionen correctamente
