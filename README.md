@@ -100,11 +100,7 @@ Después del despliegue, puedes acceder a:
 
 - **Aplicación principal:** https://localhost (Puerto 80/443)
 - **Dashboard de Grafana:** http://localhost:3000
-  - Credenciales por defecto: admin/admin
 - **Adminer (Administración de BD):** http://localhost:8080
-  - Servidor: db
-  - Usuario: appuser
-  - Contraseña: apppassword
 - **Portainer (Administración Docker):** http://localhost:9000
 - **API de Loki:** http://localhost:3100
 
