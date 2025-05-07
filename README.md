@@ -13,7 +13,6 @@ El proyecto consta de los siguientes componentes:
 - **Stack de monitorización**:
   - Grafana para dashboards y visualización
   - Loki para agregación de logs
-  - Promtail para recolección de logs
 - **Herramientas de administración**:
   - Adminer para gestión de base de datos
   - Portainer para administración de contenedores Docker
